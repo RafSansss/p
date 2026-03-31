@@ -107,14 +107,15 @@
                     <!-- Tab otomatis diisi via JS -->
                 </div>
 
+                <!-- TABEL UTAMA -->
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 border">
+                    <table class="min-w-full divide-y divide-gray-200 border border-gray-800">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider border-r w-12">No</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-r w-1/4">Jenis Ijazah</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-r w-1/3">Baik / Tidak Terpakai</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Rusak / Kesalahan Penulisan</th>
+                                <th scope="col" class="px-6 py-3 text-center text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-800 w-12">No</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-800 w-1/4">Jenis Ijazah</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-800 w-1/3">Baik / Tidak Terpakai</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider">Rusak / Kesalahan Penulisan</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200" id="tableBody">
@@ -123,6 +124,26 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- TABEL TOTAL -->
+                <div id="summaryContainer" class="mt-8 hidden">
+                    <h3 class="font-bold text-lg text-gray-800 mb-2 border-b pb-2">Rekapitulasi Total</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 border border-gray-800 md:w-2/3">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-sm font-bold text-gray-800 border-r border-gray-800">Jenis</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-sm font-bold text-gray-800 border-r border-gray-800">Total Baik</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-sm font-bold text-gray-800">Total Rusak</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="summaryTableBody">
+                                <!-- Tabel ringkasan diisi via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -459,16 +480,23 @@
         function renderUI() {
             const tabsContainer = document.getElementById('tabsContainer');
             const tableBody = document.getElementById('tableBody');
+            const summaryContainer = document.getElementById('summaryContainer');
+            const summaryTableBody = document.getElementById('summaryTableBody');
             
             tabsContainer.innerHTML = '';
             tableBody.innerHTML = '';
+            summaryTableBody.innerHTML = '';
 
             const regions = Object.keys(appData);
             
             if (regions.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500 text-sm">Belum ada data di-scan</td></tr>';
+                summaryContainer.classList.add('hidden'); // Sembunyikan tabel summary jika tidak ada data
                 return;
             }
+
+            // Munculkan tabel summary
+            summaryContainer.classList.remove('hidden');
 
             // Buat Tombol Tab
             regions.forEach(region => {
@@ -483,22 +511,25 @@
             if (!currentRegionTab || !appData[currentRegionTab]) return;
 
             const currentData = appData[currentRegionTab];
+            let grandTotalBaik = 0;
+            let grandTotalRusak = 0;
             
-            // Render Baris Tabel
+            // Render Baris Tabel Utama & Tabel Total secara bersamaan
             JENIS_IJAZAH.forEach((jenis, index) => {
+                // ================== TABEL UTAMA ==================
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-gray-50 transition-colors";
                 
                 const tdNo = document.createElement('td');
-                tdNo.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center border-r';
+                tdNo.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-center border-r border-gray-800';
                 tdNo.innerText = index + 1;
                 
                 const tdJenis = document.createElement('td');
-                tdJenis.className = 'px-6 py-4 text-sm text-gray-900 border-r font-medium';
+                tdJenis.className = 'px-6 py-4 text-sm text-gray-900 border-r border-gray-800 font-medium';
                 tdJenis.innerText = jenis.name;
                 
                 const tdBaik = document.createElement('td');
-                tdBaik.className = 'px-6 py-4 text-sm text-gray-900 border-r';
+                tdBaik.className = 'px-6 py-4 text-sm text-gray-900 border-r border-gray-800';
                 tdBaik.innerHTML = formatBarcodes(currentData[jenis.id].baik, true);
                 
                 const tdRusak = document.createElement('td');
@@ -509,34 +540,107 @@
                 tr.appendChild(tdJenis);
                 tr.appendChild(tdBaik);
                 tr.appendChild(tdRusak);
-                
                 tableBody.appendChild(tr);
+
+                // ================== TABEL TOTAL ==================
+                const countBaik = currentData[jenis.id].baik.length;
+                const countRusak = currentData[jenis.id].rusak.length;
+                
+                grandTotalBaik += countBaik;
+                grandTotalRusak += countRusak;
+
+                const trSum = document.createElement('tr');
+                trSum.className = "hover:bg-gray-50 transition-colors";
+
+                const tdSumJenis = document.createElement('td');
+                tdSumJenis.className = 'px-6 py-3 whitespace-nowrap text-sm text-gray-900 border-r border-gray-800';
+                tdSumJenis.innerText = jenis.name;
+
+                const tdSumBaik = document.createElement('td');
+                tdSumBaik.className = 'px-6 py-3 whitespace-nowrap text-sm text-gray-900 text-right border-r border-gray-800';
+                tdSumBaik.innerText = countBaik;
+
+                const tdSumRusak = document.createElement('td');
+                tdSumRusak.className = 'px-6 py-3 whitespace-nowrap text-sm text-gray-900 text-right';
+                tdSumRusak.innerText = countRusak;
+
+                trSum.appendChild(tdSumJenis);
+                trSum.appendChild(tdSumBaik);
+                trSum.appendChild(tdSumRusak);
+                summaryTableBody.appendChild(trSum);
             });
+
+            // Tambahkan baris "Jumlah" di paling bawah Tabel Total
+            const trGrand = document.createElement('tr');
+            trGrand.className = "bg-gray-100";
+
+            const tdGrandJenis = document.createElement('td');
+            tdGrandJenis.className = 'px-6 py-3 whitespace-nowrap text-sm font-bold text-gray-900 border-r border-gray-800';
+            tdGrandJenis.innerText = "Jumlah";
+
+            const tdGrandBaik = document.createElement('td');
+            tdGrandBaik.className = 'px-6 py-3 whitespace-nowrap text-sm font-bold text-gray-900 text-right border-r border-gray-800';
+            tdGrandBaik.innerText = grandTotalBaik;
+
+            const tdGrandRusak = document.createElement('td');
+            tdGrandRusak.className = 'px-6 py-3 whitespace-nowrap text-sm font-bold text-gray-900 text-right';
+            tdGrandRusak.innerText = grandTotalRusak;
+
+            trGrand.appendChild(tdGrandJenis);
+            trGrand.appendChild(tdGrandBaik);
+            trGrand.appendChild(tdGrandRusak);
+            summaryTableBody.appendChild(trGrand);
         }
 
-        // Download data ke CSV
+        // Download data ke CSV (termasuk rekapan total)
         function exportToCSV() {
-            if (Object.keys(appData).length === 0) {
+            if (!currentRegionTab || Object.keys(appData).length === 0) {
                 alert("Tidak ada data untuk diekspor.");
                 return;
             }
 
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Sheet,No,Jenis Ijazah,Baik / Tidak Terpakai,Rusak / Kesalahan Penulisan\n";
-
+            
+            // Loop untuk membuat Excel untuk setiap sheet/region
             for (let region in appData) {
+                csvContent += `=== TABEL RINCIAN SHEET: ${region} ===\n`;
+                csvContent += "No,Jenis Ijazah,Baik / Tidak Terpakai,Rusak / Kesalahan Penulisan\n";
+
+                let totalBaik = 0;
+                let totalRusak = 0;
+
+                // Tulis Rincian
                 JENIS_IJAZAH.forEach((jenis, index) => {
-                    let baikStr = formatBarcodes(appData[region][jenis.id].baik, false).replace(/"/g, '""');
-                    let rusakStr = formatBarcodes(appData[region][jenis.id].rusak, false).replace(/"/g, '""');
+                    let baikArray = appData[region][jenis.id].baik;
+                    let rusakArray = appData[region][jenis.id].rusak;
+
+                    totalBaik += baikArray.length;
+                    totalRusak += rusakArray.length;
+
+                    let baikStr = formatBarcodes(baikArray, false).replace(/"/g, '""');
+                    let rusakStr = formatBarcodes(rusakArray, false).replace(/"/g, '""');
                     
-                    csvContent += `"${region}","${index + 1}","${jenis.name}","${baikStr}","${rusakStr}"\n`;
+                    csvContent += `${index + 1},${jenis.name},"${baikStr}","${rusakStr}"\n`;
                 });
+
+                // Tulis Ringkasan Total untuk region tersebut
+                csvContent += "\n";
+                csvContent += `=== REKAPITULASI TOTAL: ${region} ===\n`;
+                csvContent += "Jenis,Total Baik,Total Rusak\n";
+
+                JENIS_IJAZAH.forEach((jenis) => {
+                    let countBaik = appData[region][jenis.id].baik.length;
+                    let countRusak = appData[region][jenis.id].rusak.length;
+                    csvContent += `${jenis.name},${countBaik},${countRusak}\n`;
+                });
+                
+                csvContent += `Jumlah,${totalBaik},${totalRusak}\n\n\n`;
             }
 
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "Rekap_Scan_Ijazah.csv");
+            link.setAttribute("download", "Rekap_Scan_Ijazah_Lengkap.csv");
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
