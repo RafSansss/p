@@ -238,14 +238,24 @@
 
         // Ketika Barcode berhasil dibaca kamera
         function onScanSuccess(decodedText, decodedResult) {
+            const text = decodedText.trim();
+            
+            // 1. Mencegah "Scan Hantu" (False Positive dari tekstur/bayangan di kamera HP)
+            // Barcode ijazah formatnya panjang. Jika hasil scan kurang dari 6 karakter, abaikan.
+            if (text.length < 6) return;
+
             const currentTime = new Date().getTime();
             
-            // Mencegah scan ganda (jeda 2 detik)
-            if (decodedText !== lastScannedCode || (currentTime - lastScanTime) > 2000) {
-                lastScannedCode = decodedText;
-                lastScanTime = currentTime;
-                processBarcode(decodedText.trim());
+            // 2. Mencegah Spam Duplikat jika kamera ditahan di atas barcode yang sama
+            if (text === lastScannedCode && (currentTime - lastScanTime) < 2500) {
+                lastScanTime = currentTime; // Perbarui timer terus selama masih disorot
+                return; 
             }
+
+            lastScannedCode = text;
+            lastScanTime = currentTime;
+            
+            processBarcode(text);
         }
 
         function onScanFailure(error) {
