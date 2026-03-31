@@ -267,6 +267,11 @@
             const input = document.getElementById('manualInput');
             const val = input.value.trim();
             if(val) {
+                // Untuk pengetesan manual, pastikan minimal 6 karakter agar tidak dicegat sistem anti-spam
+                if (val.length < 6) {
+                    alert("Teks terlalu pendek! Masukkan minimal 6 karakter barcode.");
+                    return;
+                }
                 processBarcode(val);
                 input.value = '';
             }
@@ -428,7 +433,7 @@
                         result.push(spans.join(', '));
                     } else {
                         let spans = grouped[prefix].map(bc => {
-                            let fullBc = prefix + fullBc;
+                            let fullBc = prefix + bc; // BUG FIXED HERE
                             return `<span onclick="openEditModal('${fullBc}')" class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium" title="Klik untuk edit/hapus data ini">${bc}</span>`;
                         });
                         result.push(prefix + spans.join(', '));
